@@ -1,5 +1,5 @@
 use pyo3::{prelude::*, types::PyType};
-use vodozemac::megolm::{ExportedSessionKey, MegolmMessage, SessionKey};
+use vodozemac::megolm::{ExportedSessionKey, MegolmMessage, SessionConfig, SessionKey};
 
 use crate::error::{LibolmPickleError, MegolmDecryptionError, PickleError, SessionKeyDecodeError};
 
@@ -13,7 +13,7 @@ impl GroupSession {
     #[new]
     fn new() -> Self {
         Self {
-            inner: vodozemac::megolm::GroupSession::new(),
+            inner: vodozemac::megolm::GroupSession::new(SessionConfig::default()),
         }
     }
 
@@ -77,7 +77,7 @@ impl InboundGroupSession {
         let key = SessionKey::from_base64(session_key)?;
 
         Ok(Self {
-            inner: vodozemac::megolm::InboundGroupSession::new(&key),
+            inner: vodozemac::megolm::InboundGroupSession::new(&key, SessionConfig::default()),
         })
     }
 
@@ -86,7 +86,7 @@ impl InboundGroupSession {
         let key = ExportedSessionKey::from_base64(session_key)?;
 
         Ok(Self {
-            inner: vodozemac::megolm::InboundGroupSession::import(&key),
+            inner: vodozemac::megolm::InboundGroupSession::import(&key, SessionConfig::default()),
         })
     }
 
@@ -107,9 +107,10 @@ impl InboundGroupSession {
     fn decrypt(&mut self, ciphertext: &str) -> Result<DecryptedMessage, MegolmDecryptionError> {
         let message = MegolmMessage::from_base64(ciphertext)?;
         let ret = self.inner.decrypt(&message)?;
+        let plaintext = String::from_utf8_lossy(&ret.plaintext).to_string();
 
         Ok(DecryptedMessage {
-            plaintext: ret.plaintext,
+            plaintext: plaintext,
             message_index: ret.message_index,
         })
     }

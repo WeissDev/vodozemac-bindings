@@ -4,6 +4,8 @@ use pyo3::{prelude::*, types::PyType};
 
 use crate::error::{KeyError, LibolmPickleError, PickleError, SessionError};
 
+use vodozemac::olm::SessionConfig;
+
 use super::{session::Session, OlmMessage};
 
 #[pyclass]
@@ -81,7 +83,7 @@ impl Account {
     }
 
     fn generate_one_time_keys(&mut self, count: usize) {
-        self.inner.generate_one_time_keys(count)
+        self.inner.generate_one_time_keys(count);
     }
 
     #[getter]
@@ -94,11 +96,11 @@ impl Account {
     }
 
     fn generate_fallback_key(&mut self) {
-        self.inner.generate_fallback_key()
+        self.inner.generate_fallback_key();
     }
 
     fn mark_keys_as_published(&mut self) {
-        self.inner.mark_keys_as_published()
+        self.inner.mark_keys_as_published();
     }
 
     fn create_outbound_session(
@@ -109,9 +111,11 @@ impl Account {
         let identity_key = vodozemac::Curve25519PublicKey::from_base64(identity_key)?;
         let one_time_key = vodozemac::Curve25519PublicKey::from_base64(one_time_key)?;
 
-        let session = self
-            .inner
-            .create_outbound_session(identity_key, one_time_key);
+        let session = self.inner.create_outbound_session(
+            SessionConfig::default(),
+            identity_key,
+            one_time_key,
+        );
 
         Ok(Session { inner: session })
     }
@@ -128,12 +132,13 @@ impl Account {
 
         if let vodozemac::olm::OlmMessage::PreKey(message) = message {
             let result = self.inner.create_inbound_session(identity_key, &message)?;
+            let plaintext = String::from_utf8_lossy(&result.plaintext).to_string();
 
             Ok((
                 Session {
                     inner: result.session,
                 },
-                result.plaintext,
+                plaintext,
             ))
         } else {
             Err(SessionError::InvalidMessageType)
