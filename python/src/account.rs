@@ -54,6 +54,10 @@ impl Account {
         Ok(self.inner.pickle().encrypt(pickle_key))
     }
 
+    fn to_libolm_pickle(&self, pickle_key: &[u8]) -> Result<String, LibolmPickleError> {
+        Ok(self.inner.to_libolm_pickle(pickle_key)?)
+    }
+
     #[getter]
     fn ed25519_key(&self) -> String {
         self.inner.ed25519_key().to_base64()
